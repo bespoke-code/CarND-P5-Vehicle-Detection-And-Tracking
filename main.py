@@ -145,6 +145,11 @@ if __name__ == '__main__':
     # Define the labels vector
     y = np.hstack((np.ones(len(car_features)), np.zeros(len(notcar_features))))
 
+    # An idea from Sebastian Raschka's Python Machine Learning, 1st Ed. book:
+    # Compressing Data via Dimensionality Reduction, Ch. 5 - LDA and PCA!
+    # Use LDA or PCA to select meaningful features and shrink the feature vector.
+    # TODO: just what I said ^
+
     # Split up data into randomized training and test sets
     rand_state = np.random.randint(0, 100)
     X_train, X_test, y_train, y_test = model_selection.train_test_split(
@@ -153,6 +158,9 @@ if __name__ == '__main__':
     print('Using:', orient, 'orientations', pix_per_cell,
           'pixels per cell and', cell_per_block, 'cells per block')
     print('Feature vector length:', len(X_train[0]))
+
+    # TODO: Use a Grid search (?) to tune params to the max.
+    # TODO: From the Python ML book by Seb. Raschka - use an ENSEMBLE CLASSIFIER and majority vote!
     # Use a linear SVC
     svc = svm.LinearSVC()
     # Check the training time for the SVC

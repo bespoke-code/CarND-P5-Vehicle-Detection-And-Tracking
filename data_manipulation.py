@@ -167,3 +167,8 @@ def draw_boxes(img, bboxes, color=(0, 0, 255), thick=6):
     return imcopy
 
 
+## Helper function to visualize the feature vector
+# An idea as seen here: https://github.com/stefancyliax/CarND-Vehicle-Detection/blob/master/P5_Vehicle_Detection.ipynb
+def visualize(data_features):
+    plt.plot(data_features)
+    plt.show()
