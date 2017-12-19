@@ -7,6 +7,7 @@ from sklearn import svm, model_selection, utils
 from sklearn.preprocessing import StandardScaler
 import data_manipulation
 import time
+from glob import glob
 
 
 # Define a function to extract features from a single image window
@@ -33,17 +34,17 @@ def single_img_features(img, color_space='RGB', spatial_size=(32, 32),
     else:
         feature_image = np.copy(img)
     # 3) Compute spatial features if flag is set
-    if spatial_feat == True:
+    if spatial_feat:
         spatial_features = data_manipulation.bin_spatial(feature_image, size=spatial_size)
         # 4) Append features to list
         img_features.append(spatial_features)
     # 5) Compute histogram features if flag is set
-    if hist_feat == True:
+    if hist_feat:
         hist_features = data_manipulation.color_hist(feature_image, nbins=hist_bins)
         # 6) Append features to list
         img_features.append(hist_features)
     # 7) Compute HOG features if flag is set
-    if hog_feat == True:
+    if hog_feat:
         if hog_channel == 'ALL':
             hog_features = []
             for channel in range(feature_image.shape[2]):
@@ -102,7 +103,7 @@ if __name__ == '__main__':
 
     # Check dataset state:
     # - balanced
-    datapoints_count = np.min(len(cars), len(notcars))
+    datapoints_count = min([len(cars), len(notcars)])
     cars = utils.shuffle(cars)[:datapoints_count]
     #y_cars1 = y_cars1[:datapoints_count]
     notcars = utils.shuffle(notcars)[:datapoints_count]
@@ -111,17 +112,17 @@ if __name__ == '__main__':
     # - size of each image
     # Feature extraction from the dataset
 
-    color_space = 'RGB'  # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
-    orient = 9  # HOG orientations
+    color_space = 'HSV'  # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
+    orient = 12  # HOG orientations
     pix_per_cell = 8  # HOG pixels per cell
     cell_per_block = 2  # HOG cells per block
-    hog_channel = 0  # Can be 0, 1, 2, or "ALL"
+    hog_channel = 'ALL'  # Can be 0, 1, 2, or "ALL"
     spatial_size = (16, 16)  # Spatial binning dimensions
-    hist_bins = 16  # Number of histogram bins
+    hist_bins = 32  # Number of histogram bins
     spatial_feat = True  # Spatial features on or off
     hist_feat = True  # Histogram features on or off
     hog_feat = True  # HOG features on or off
-    y_start_stop = [None, None]  # Min and max in y to search in slide_window()
+    y_start_stop = [400, 720]  # Min and max in y to search in slide_window()
 
     car_features = data_manipulation.extract_features(cars, color_space=color_space,
                                     spatial_size=spatial_size, hist_bins=hist_bins,
@@ -162,7 +163,7 @@ if __name__ == '__main__':
     # TODO: Use a Grid search (?) to tune params to the max.
     # TODO: From the Python ML book by Seb. Raschka - use an ENSEMBLE CLASSIFIER and majority vote!
     # Use a linear SVC
-    svc = svm.LinearSVC()
+    svc = svm.SVC()
     # Check the training time for the SVC
     t = time.time()
     svc.fit(X_train, y_train)
@@ -173,24 +174,33 @@ if __name__ == '__main__':
     # Check the prediction time for a single sample
     t = time.time()
 
-    image = mpimg.imread('bbox-example-image.jpg')
-    draw_image = np.copy(image)
 
+    test_images = sorted(glob('examples/frame*.jpg'))
+    print(test_images)
     # Uncomment the following line if you extracted training
     # data from .png images (scaled 0 to 1 by mpimg) and the
     # image you are searching is a .jpg (scaled 0 to 255)
     # image = image.astype(np.float32)/255
+    xy_windows = [(64,64), (96, 96), (128,128)]
+    y_regions = [[400, 520], [400, 550], [470, 600]]
+    colors = [(255,0,0), (0,255,0), (0,0,255)]
+    for i in range(len(test_images)):
+        image = mpimg.imread(test_images[i])
+        print('loaded image ', test_images[i])
+        draw_image = np.copy(image)
+        for j in range(len(xy_windows)):
 
-    windows = data_manipulation.slide_window(image, x_start_stop=[None, None], y_start_stop=y_start_stop,
-                           xy_window=(96, 96), xy_overlap=(0.5, 0.5))
+            windows = data_manipulation.slide_window(image, x_start_stop=[None, None], y_start_stop=y_regions[j],
+                                   xy_window=xy_windows[j], xy_overlap=(0.5, 0.5))
 
-    hot_windows = search_windows(image, windows, svc, X_scaler, color_space=color_space,
-                                 spatial_size=spatial_size, hist_bins=hist_bins,
-                                 orient=orient, pix_per_cell=pix_per_cell,
-                                 cell_per_block=cell_per_block,
-                                 hog_channel=hog_channel, spatial_feat=spatial_feat,
-                                 hist_feat=hist_feat, hog_feat=hog_feat)
+            hot_windows = search_windows(image, windows, svc, X_scaler, color_space=color_space,
+                                         spatial_size=spatial_size, hist_bins=hist_bins,
+                                         orient=orient, pix_per_cell=pix_per_cell,
+                                         cell_per_block=cell_per_block,
+                                         hog_channel=hog_channel, spatial_feat=spatial_feat,
+                                         hist_feat=hist_feat, hog_feat=hog_feat)
 
-    window_img = data_manipulation.draw_boxes(draw_image, hot_windows, color=(0, 0, 255), thick=6)
+            draw_image = data_manipulation.draw_boxes(draw_image, hot_windows, color=colors[j], thick=j+2)
 
-    plt.imshow(window_img)
+            plt.imshow(draw_image)
+        plt.show()

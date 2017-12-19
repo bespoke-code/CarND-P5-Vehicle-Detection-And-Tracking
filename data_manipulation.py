@@ -3,7 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import cv2
 from glob import glob
-
+from skimage.feature import hog
 
 def load_data(path):
     return glob(path + '*.jpeg')
@@ -21,7 +21,7 @@ def get_hog_features(img, orient, pix_per_cell, cell_per_block,
         features, hog_image = hog(img, orientations=orient,
                                   pixels_per_cell=(pix_per_cell, pix_per_cell),
                                   cells_per_block=(cell_per_block, cell_per_block),
-                                  transform_sqrt=True,
+                                  transform_sqrt=True, block_norm='L2-Hys',
                                   visualise=vis, feature_vector=feature_vec)
         return features, hog_image
     # Otherwise call with one output
@@ -29,7 +29,7 @@ def get_hog_features(img, orient, pix_per_cell, cell_per_block,
         features = hog(img, orientations=orient,
                        pixels_per_cell=(pix_per_cell, pix_per_cell),
                        cells_per_block=(cell_per_block, cell_per_block),
-                       transform_sqrt=True,
+                       transform_sqrt=True, block_norm='L2-Hys',
                        visualise=vis, feature_vector=feature_vec)
         return features
 
