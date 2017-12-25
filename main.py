@@ -49,11 +49,11 @@ def single_img_features(img, color_space='RGB', spatial_size=(32, 32),
             hog_features = []
             for channel in range(feature_image.shape[2]):
                 hog_features.extend(data_manipulation.get_hog_features(feature_image[:, :, channel],
-                                                     orient, pix_per_cell, cell_per_block,
-                                                     vis=False, feature_vec=True))
+                                                                       orient, pix_per_cell, cell_per_block,
+                                                                       vis=False, feature_vec=True))
         else:
             hog_features = data_manipulation.get_hog_features(feature_image[:, :, hog_channel], orient,
-                                            pix_per_cell, cell_per_block, vis=False, feature_vec=True)
+                                                              pix_per_cell, cell_per_block, vis=False, feature_vec=True)
         # 8) Append features to list
         img_features.append(hog_features)
 
@@ -97,17 +97,17 @@ if __name__ == '__main__':
 
     # Get the dataset in place
     cars = data_manipulation.load_data('./small_dataset/vehicles_smallset/cars1/')
-    #y_cars1 = [[1] for i in range(len(X_cars1))]
+    # y_cars1 = [[1] for i in range(len(X_cars1))]
     notcars = data_manipulation.load_data('./small_dataset/non-vehicles_smallset/notcars1/')
-    #y_not_cars1 = [[0] for i in range(len(X_not_cars1))]
+    # y_not_cars1 = [[0] for i in range(len(X_not_cars1))]
 
     # Check dataset state:
     # - balanced
     datapoints_count = min([len(cars), len(notcars)])
     cars = utils.shuffle(cars)[:datapoints_count]
-    #y_cars1 = y_cars1[:datapoints_count]
+    # y_cars1 = y_cars1[:datapoints_count]
     notcars = utils.shuffle(notcars)[:datapoints_count]
-    #y_not_cars1 = y_not_cars1[:datapoints_count]
+    # y_not_cars1 = y_not_cars1[:datapoints_count]
     # - colorspace of each image
     # - size of each image
     # Feature extraction from the dataset
@@ -117,7 +117,7 @@ if __name__ == '__main__':
     pix_per_cell = 8  # HOG pixels per cell
     cell_per_block = 2  # HOG cells per block
     hog_channel = 'ALL'  # Can be 0, 1, 2, or "ALL"
-    spatial_size = (16, 16)  # Spatial binning dimensions
+    spatial_size = (32, 32)  # Spatial binning dimensions
     hist_bins = 32  # Number of histogram bins
     spatial_feat = True  # Spatial features on or off
     hist_feat = True  # Histogram features on or off
@@ -125,17 +125,17 @@ if __name__ == '__main__':
     y_start_stop = [400, 720]  # Min and max in y to search in slide_window()
 
     car_features = data_manipulation.extract_features(cars, color_space=color_space,
-                                    spatial_size=spatial_size, hist_bins=hist_bins,
-                                    orient=orient, pix_per_cell=pix_per_cell,
-                                    cell_per_block=cell_per_block,
-                                    hog_channel=hog_channel, spatial_feat=spatial_feat,
-                                    hist_feat=hist_feat, hog_feat=hog_feat)
+                                                      spatial_size=spatial_size, hist_bins=hist_bins,
+                                                      orient=orient, pix_per_cell=pix_per_cell,
+                                                      cell_per_block=cell_per_block,
+                                                      hog_channel=hog_channel, spatial_feat=spatial_feat,
+                                                      hist_feat=hist_feat, hog_feat=hog_feat)
     notcar_features = data_manipulation.extract_features(notcars, color_space=color_space,
-                                       spatial_size=spatial_size, hist_bins=hist_bins,
-                                       orient=orient, pix_per_cell=pix_per_cell,
-                                       cell_per_block=cell_per_block,
-                                       hog_channel=hog_channel, spatial_feat=spatial_feat,
-                                       hist_feat=hist_feat, hog_feat=hog_feat)
+                                                         spatial_size=spatial_size, hist_bins=hist_bins,
+                                                         orient=orient, pix_per_cell=pix_per_cell,
+                                                         cell_per_block=cell_per_block,
+                                                         hog_channel=hog_channel, spatial_feat=spatial_feat,
+                                                         hist_feat=hist_feat, hog_feat=hog_feat)
 
     X = np.vstack((car_features, notcar_features)).astype(np.float64)
     # Fit a per-column scaler
@@ -174,24 +174,22 @@ if __name__ == '__main__':
     # Check the prediction time for a single sample
     t = time.time()
 
-
     test_images = sorted(glob('examples/frame*.jpg'))
     print(test_images)
     # Uncomment the following line if you extracted training
     # data from .png images (scaled 0 to 1 by mpimg) and the
     # image you are searching is a .jpg (scaled 0 to 255)
     # image = image.astype(np.float32)/255
-    xy_windows = [(64,64), (96, 96), (128,128)]
+    xy_windows = [(64, 64), (96, 96), (128, 128)]
     y_regions = [[400, 520], [400, 550], [470, 600]]
-    colors = [(255,0,0), (0,255,0), (0,0,255)]
+    colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
     for i in range(len(test_images)):
         image = mpimg.imread(test_images[i])
         print('loaded image ', test_images[i])
         draw_image = np.copy(image)
         for j in range(len(xy_windows)):
-
             windows = data_manipulation.slide_window(image, x_start_stop=[None, None], y_start_stop=y_regions[j],
-                                   xy_window=xy_windows[j], xy_overlap=(0.5, 0.5))
+                                                     xy_window=xy_windows[j], xy_overlap=(0.5, 0.5))
 
             hot_windows = search_windows(image, windows, svc, X_scaler, color_space=color_space,
                                          spatial_size=spatial_size, hist_bins=hist_bins,
@@ -200,7 +198,7 @@ if __name__ == '__main__':
                                          hog_channel=hog_channel, spatial_feat=spatial_feat,
                                          hist_feat=hist_feat, hog_feat=hog_feat)
 
-            draw_image = data_manipulation.draw_boxes(draw_image, hot_windows, color=colors[j], thick=j+2)
+            draw_image = data_manipulation.draw_boxes(draw_image, hot_windows, color=colors[j], thick=j + 2)
 
             plt.imshow(draw_image)
         plt.show()
