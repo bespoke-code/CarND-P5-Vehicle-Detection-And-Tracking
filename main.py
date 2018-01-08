@@ -112,11 +112,11 @@ def process_frame(frame):
 if __name__ == '__main__':
     heatmapHistory = HeatmapHistory(threshold=1)
     # Get the dataset in place
-    #cars = data_manipulation.load_data_jpg('./small_dataset/vehicles_smallset/cars1/')
-    cars = data_manipulation.load_data_png('./dataset/vehicles/*/')
+    cars = data_manipulation.load_data_jpg('./small_dataset/vehicles_smallset/cars*/')
+    #cars = data_manipulation.load_data_png('./dataset/vehicles/*/')
     # y_cars1 = [[1] for i in range(len(X_cars1))]
-    #notcars = data_manipulation.load_data_jpg('./small_dataset/non-vehicles_smallset/notcars1/')
-    notcars = data_manipulation.load_data_png('./dataset/non-vehicles/*/')
+    notcars = data_manipulation.load_data_jpg('./small_dataset/non-vehicles_smallset/notcars*/')
+    #notcars = data_manipulation.load_data_png('./dataset/non-vehicles/*/')
     # y_not_cars1 = [[0] for i in range(len(X_not_cars1))]
 
     # Check dataset state:
@@ -158,6 +158,7 @@ if __name__ == '__main__':
 
     X = np.vstack((car_features, notcar_features)).astype(np.float64)
     # Fit a per-column scaler
+    data_manipulation.visualize(X[0])
     print('Performing scaling...')
     X_scaler = StandardScaler().fit(X)
     # Apply the scaler to X
@@ -207,9 +208,9 @@ if __name__ == '__main__':
     # data from .png images (scaled 0 to 1 by mpimg) and the
     # image you are searching is a .jpg (scaled 0 to 255)
     # image = image.astype(np.float32)/255
-    xy_windows = [(64, 64), (96, 96), (128, 128), (256, 256)]
-    y_regions = [[400, 520], [400, 550], [470, 600], [400, 720]]
-    colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (127, 127, 255)]
+    xy_windows = [(64, 64), (96, 96), (128, 128)]
+    y_regions = [[400, 520], [400, 550], [470, 600]]
+    colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
     for i in range(len(test_images)):
         image = mpimg.imread(test_images[i])
         print('loaded image ', test_images[i])
@@ -229,8 +230,8 @@ if __name__ == '__main__':
                                          hist_feat=hist_feat, hog_feat=hog_feat)
             print(len(hot_windows), 'windows found!')
             draw_image = data_manipulation.draw_boxes(draw_image, hot_windows, color=colors[j], thick=j + 2)
-            #heatmapHistory.add(hot_windows)
-            #heatmapHistory.visualize_heatmap()
+            heatmapHistory.add(hot_windows)
+            heatmapHistory.visualize_heatmap()
             plt.imshow(draw_image)
         print('Time to get all window candidates:', time.time() - start_time)
         plt.show()
