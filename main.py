@@ -101,36 +101,30 @@ heatmapHistory = HeatmapHistory(threshold=5)
 def process_frame(frame):
     global heatmapHistory
 
-
-    # load data
-    # get feature set
     # get trained classifier
     # prepare heatmap
     # process video frame by frame
 
-
 if __name__ == '__main__':
-    heatmapHistory = HeatmapHistory(threshold=1)
-    # Get the dataset in place
+    global heatmapHistory
+
+    # Get each image's path
     cars = data_manipulation.load_data_jpg('./small_dataset/vehicles_smallset/cars*/')
     #cars = data_manipulation.load_data_png('./dataset/vehicles/*/')
-    # y_cars1 = [[1] for i in range(len(X_cars1))]
+
     notcars = data_manipulation.load_data_jpg('./small_dataset/non-vehicles_smallset/notcars*/')
     #notcars = data_manipulation.load_data_png('./dataset/non-vehicles/*/')
-    # y_not_cars1 = [[0] for i in range(len(X_not_cars1))]
 
-    # Check dataset state:
-    # - balanced
+
+    # I really like a balanced dataset.
     datapoints_count = min([len(cars), len(notcars)])
-    print('Using', 2*datapoints_count, 'data points for training (balanced).')
-    cars = utils.shuffle(cars)[:datapoints_count]
-    # y_cars1 = y_cars1[:datapoints_count]
-    notcars = utils.shuffle(notcars)[:datapoints_count]
-    # y_not_cars1 = y_not_cars1[:datapoints_count]
-    # - colorspace of each image
-    # - size of each image
-    # Feature extraction from the dataset
+    #print('Using', 2*datapoints_count, 'data points for training (balanced).')
 
+    cars = utils.shuffle(cars)[:datapoints_count]
+    notcars = utils.shuffle(notcars)[:datapoints_count]
+
+
+    # Define feature extraction parameters
     color_space = 'YUV'  # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
     orient = 12  # HOG orientations
     pix_per_cell = 16  # HOG pixels per cell
@@ -143,6 +137,7 @@ if __name__ == '__main__':
     hog_feat = True  # HOG features on or off
     y_start_stop = [400, 720]  # Min and max in y to search in slide_window()
 
+    # Feature extraction
     car_features = data_manipulation.extract_features(cars, color_space=color_space,
                                                       spatial_size=spatial_size, hist_bins=hist_bins,
                                                       orient=orient, pix_per_cell=pix_per_cell,
@@ -156,14 +151,19 @@ if __name__ == '__main__':
                                                          hog_channel=hog_channel, spatial_feat=spatial_feat,
                                                          hist_feat=hist_feat, hog_feat=hog_feat)
 
+
     X = np.vstack((car_features, notcar_features)).astype(np.float64)
-    # Fit a per-column scaler
+
+    #  Visualize the feature vector. Used to debug the output to see if all goes according to plan.
     data_manipulation.visualize(X[0])
-    print('Performing scaling...')
+
+    # print('Performing scaling...')
+    # Scaling the features
     X_scaler = StandardScaler().fit(X)
-    # Apply the scaler to X
     scaled_X = X_scaler.transform(X)
-    print('Mean, variance:', X_scaler.mean_, X_scaler.var_)
+
+    # Informative, print the mean and variance vectors for each scaled feature
+    #print('Mean, variance:', X_scaler.mean_, X_scaler.var_)
 
     # Define the labels vector
     y = np.hstack((np.ones(len(car_features)), np.zeros(len(notcar_features))))
@@ -190,20 +190,24 @@ if __name__ == '__main__':
     print('Feature vector length:', len(X_train[0]))
 
     # TODO: Use a Grid search (?) to tune params to the max.
-    # Use a rbf SVC
+    # Using rbf SVC kernel
     svc = svm.SVC(kernel='rbf')
+
     # Check the training time for the SVC
     t = time.time()
+
     svc.fit(X_train, y_train)
+    print(svc.n_support_)
+
     t2 = time.time()
     print(round(t2 - t, 2), 'Seconds to train SVC...')
-    # Check the score of the SVC
-    print('Test Accuracy of SVC = ', round(svc.score(X_test, y_test), 4))
-    # Check the prediction time for a single sample
-    t = time.time()
 
+    # Check the accuracy of the SVC
+    print('Test Accuracy of SVC = ', round(svc.score(X_test, y_test), 4))
+
+    # See results on test images
     test_images = sorted(glob('examples/frame*.jpg'))
-    print(test_images)
+
     # Uncomment the following line if you extracted training
     # data from .png images (scaled 0 to 1 by mpimg) and the
     # image you are searching is a .jpg (scaled 0 to 255)
@@ -211,6 +215,7 @@ if __name__ == '__main__':
     xy_windows = [(64, 64), (96, 96), (128, 128)]
     y_regions = [[400, 520], [400, 550], [470, 600]]
     colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
+
     for i in range(len(test_images)):
         image = mpimg.imread(test_images[i])
         print('loaded image ', test_images[i])
