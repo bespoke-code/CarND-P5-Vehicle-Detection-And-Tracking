@@ -8,7 +8,8 @@ import data_manipulation
 import time
 from heatmap_utils import HeatmapHistory
 from moviepy.editor import VideoFileClip
-
+from glob import glob
+from matplotlib import pyplot as plt
 
 # Define a function to extract features from a single image window
 # This function is very similar to extract_features()
@@ -123,6 +124,7 @@ def process_frame(frame):
 
     xy_windows = [(64, 64), (96, 96), (128, 128)]
     y_regions = [[380, 520], [400, 550], [470, 600]]
+    #colors = [(1.,0,0), (0,1.,0), (0,0,1.)]
 
     #draw_image = np.copy(frame)
 
@@ -195,13 +197,13 @@ if __name__ == '__main__':
     X = np.vstack((car_features, notcar_features)).astype(np.float64)
 
     #  Visualize the feature vector. Used to debug the output to see if all goes according to plan.
-    data_manipulation.visualize(X[0])
+    #data_manipulation.visualize(X[0])
 
     # print('Performing scaling...')
     # Scaling the features
     X_scaler.fit(X)
     scaled_X = X_scaler.transform(X)
-
+    #data_manipulation.visualize(scaled_X[0])
     # Informative, print the mean and variance vectors for each scaled feature
     #print('Mean, variance:', X_scaler.mean_, X_scaler.var_)
 
@@ -243,7 +245,13 @@ if __name__ == '__main__':
     print('Test Accuracy of SVC = ', round(svc.score(X_test, y_test), 4))
 
     # See results on test images (for debugging)
-    # test_images = sorted(glob('examples/frame*.jpg'))
+    #test_images = sorted(glob('examples/frame*.jpg'))
+    #
+    #for img in test_images:
+    #    img_result = plt.imread(img)
+    #    img_result = process_frame(img_result)
+    #    plt.imshow(img_result)
+    #    plt.show()
 
 
     out_dir='./videos/'

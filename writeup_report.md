@@ -68,6 +68,14 @@ data and extracted the top 300 components with the greatest variance (also calle
  came from Sebastian Raschka's Python Machine Learning, 1st Ed. book. This analysis' results should speed up the 
  training process, lower the amount of RAM used in the system, and provide us with a much smaller 300-element arrays (vectors) 
  for training our SVM classifier, while keeping the components that differentiate cars and not-cars the most.
+ 
+![Feature set before PCA](./examples/feature-dataset-normalized1.png)
+ 
+A sample feature vector is given here (before PCA analysis, ~1750 components).
+ 
+![Feature set after PCA](./examples/features-pca1.png)
+
+The same feature vector after PCA analysis (300 components).
 
 ### Sliding Window Search
 
@@ -90,6 +98,14 @@ I adjusted each window size and search region according to the reasonable size o
 This means that smaller windows would look 'farther' on the road in order to detect cars when compared to bigger sized 
 search windows, which would aim to detect vehicles closer to our car. Overlapping of each zone was introduced to 
 increase the certainty of a car being present in a given image region, since multiple detections could (and would) overlap. 
+
+Here I will give three examples of the detections:
+
+![Example detection 1](./examples/detections_1.png)
+
+![Example detection 2](./examples/detections_2.png)
+
+![Example detection 3](./examples/detections_3.png)
 
 I decided not to force too small (eg. 32x32px) or too large (eg. 320x320px) search windows into the pipeline.
 The rationale behind my decision is the following:
@@ -149,6 +165,9 @@ is noticeable in the videos the most, especially when the white car to our car's
 our classifier can't register the rear lights or number plate shapes in a car, it becomes far more unreliable. This can 
 be improved by adding more side images of cars to the dataset and further balancing the dataset. What's more, even though 
 the pipeline can detect cars coming from the opposite direction, a bigger dataset is needed for that to really work. 
+Here's an example of an unreliable detection in one case as discussed:
+
+![Example detection - unreliable](./examples/detections_5.png)
 
 I am not so thrilled to suggest running this pipeline in real-time, or at night/ in extremely low light / bad weather 
 (heavy rain), as the dataset features pictures of cars almost exclusively taken in broad daylight. This can be 
