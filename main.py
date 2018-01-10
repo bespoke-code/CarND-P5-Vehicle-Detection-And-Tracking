@@ -1,15 +1,13 @@
-from skimage import feature
-from matplotlib import pyplot as plt
-import matplotlib.image as mpimg
 import cv2
 import numpy as np
 from sklearn import svm, model_selection, utils
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
+from scipy.ndimage.measurements import label
 import data_manipulation
 import time
-from glob import glob
 from heatmap_utils import HeatmapHistory
+from moviepy.editor import VideoFileClip
 
 
 # Define a function to extract features from a single image window
@@ -96,25 +94,82 @@ def search_windows(img, windows, clf, scaler, comp_analyzer, color_space='RGB',
     return on_windows
 
 
-heatmapHistory = HeatmapHistory(threshold=5)
+# Define components required for further work
+heatmapHistory = HeatmapHistory(threshold=11)
+X_scaler = StandardScaler()
+pca = PCA(n_components=300, whiten=True)
+svc = svm.SVC(kernel='rbf')
+
+# Define feature extraction parameters
+color_space = 'YUV'  # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
+orient = 9  # HOG orientations
+pix_per_cell = 16  # HOG pixels per cell
+cell_per_block = 2  # HOG cells per block
+hog_channel = 'ALL'  # Can be 0, 1, 2, or "ALL"
+spatial_size = (16, 16)  # Spatial binning dimensions
+hist_bins = 32  # Number of histogram bins
+spatial_feat = True  # Spatial features on or off
+hist_feat = True  # Histogram features on or off
+hog_feat = True  # HOG features on or off
+y_start_stop = [380, 720]  # Min and max in y to search in slide_window()
+
 
 def process_frame(frame):
-    global heatmapHistory
-
-    # get trained classifier
-    # prepare heatmap
     # process video frame by frame
+    # Uncomment the following line if you extracted training
+    # data from .png images (scaled 0 to 1 by mpimg) and the
+    # image you are searching is a .jpg (scaled 0 to 255)
+    frame = frame.astype(np.float32)/255.
+
+    xy_windows = [(64, 64), (96, 96), (128, 128)]
+    y_regions = [[380, 520], [400, 550], [470, 600]]
+
+    #draw_image = np.copy(frame)
+
+    # TODO: Implement this to save time in the future?
+    # hog_image = data_manipulation.get_hog_features(draw_image, orient, pix_per_cell, cell_per_block,
+    #                                                vis=False, feature_vec=True)
+
+    hot_windows_for_frame = []
+    for j in range(len(xy_windows)):
+        windows = data_manipulation.slide_window(frame, x_start_stop=[80, 1280], y_start_stop=y_regions[j],
+                                                 xy_window=xy_windows[j], xy_overlap=(0.5, 0.5))
+
+        # use trained classifier, model fitter etc.
+        hot_windows = search_windows(frame, windows, svc, X_scaler, pca, color_space=color_space,
+                                     spatial_size=spatial_size, hist_bins=hist_bins,
+                                     orient=orient, pix_per_cell=pix_per_cell,
+                                     cell_per_block=cell_per_block,
+                                     hog_channel=hog_channel, spatial_feat=spatial_feat,
+                                     hist_feat=hist_feat, hog_feat=hog_feat)
+        #print(len(hot_windows), 'windows found!')
+        hot_windows_for_frame.extend(hot_windows)
+
+        #draw_image = data_manipulation.draw_boxes(draw_image, hot_windows, color=colors[j], thick=j + 2)
+        #plt.imshow(draw_image)
+    #plt.show()
+
+    # prepare heatmap
+    heatmapHistory.add(hot_windows_for_frame)
+    #heatmapHistory.visualize_heatmap()
+
+    time_series_heatmap = heatmapHistory.get_heatmap()
+    # Label each part of the heatmap
+    labeled_windows = label(time_series_heatmap)
+    # Draw a box around each labeled part!
+    frame = frame * 255.
+    frame = np.clip(frame, 0, 255)
+    drawn_frame = data_manipulation.draw_labeled_bboxes(frame, labeled_windows)
+    return drawn_frame
+
 
 if __name__ == '__main__':
-    global heatmapHistory
-
     # Get each image's path
-    cars = data_manipulation.load_data_jpg('./small_dataset/vehicles_smallset/cars*/')
-    #cars = data_manipulation.load_data_png('./dataset/vehicles/*/')
+    #cars = data_manipulation.load_data_jpg('./small_dataset/vehicles_smallset/cars*/')
+    cars = data_manipulation.load_data_png('./dataset/vehicles/*/')
 
-    notcars = data_manipulation.load_data_jpg('./small_dataset/non-vehicles_smallset/notcars*/')
-    #notcars = data_manipulation.load_data_png('./dataset/non-vehicles/*/')
-
+    #notcars = data_manipulation.load_data_jpg('./small_dataset/non-vehicles_smallset/notcars*/')
+    notcars = data_manipulation.load_data_png('./dataset/non-vehicles/*/')
 
     # I really like a balanced dataset.
     datapoints_count = min([len(cars), len(notcars)])
@@ -122,20 +177,6 @@ if __name__ == '__main__':
 
     cars = utils.shuffle(cars)[:datapoints_count]
     notcars = utils.shuffle(notcars)[:datapoints_count]
-
-
-    # Define feature extraction parameters
-    color_space = 'YUV'  # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
-    orient = 12  # HOG orientations
-    pix_per_cell = 16  # HOG pixels per cell
-    cell_per_block = 2  # HOG cells per block
-    hog_channel = 'ALL'  # Can be 0, 1, 2, or "ALL"
-    spatial_size = (16, 16)  # Spatial binning dimensions
-    hist_bins = 32  # Number of histogram bins
-    spatial_feat = True  # Spatial features on or off
-    hist_feat = True  # Histogram features on or off
-    hog_feat = True  # HOG features on or off
-    y_start_stop = [400, 720]  # Min and max in y to search in slide_window()
 
     # Feature extraction
     car_features = data_manipulation.extract_features(cars, color_space=color_space,
@@ -151,7 +192,6 @@ if __name__ == '__main__':
                                                          hog_channel=hog_channel, spatial_feat=spatial_feat,
                                                          hist_feat=hist_feat, hog_feat=hog_feat)
 
-
     X = np.vstack((car_features, notcar_features)).astype(np.float64)
 
     #  Visualize the feature vector. Used to debug the output to see if all goes according to plan.
@@ -159,7 +199,7 @@ if __name__ == '__main__':
 
     # print('Performing scaling...')
     # Scaling the features
-    X_scaler = StandardScaler().fit(X)
+    X_scaler.fit(X)
     scaled_X = X_scaler.transform(X)
 
     # Informative, print the mean and variance vectors for each scaled feature
@@ -171,14 +211,13 @@ if __name__ == '__main__':
     # An idea from Sebastian Raschka's Python Machine Learning, 1st Ed. book:
     # Compressing Data via Dimensionality Reduction, Ch. 5 - LDA and PCA!
     # Use LDA or PCA to select meaningful features and shrink the feature vector.
-    pca = PCA(n_components=300, whiten=True)
     pca.fit(scaled_X)
     print('Component analysis done.')
 
     scaled_pca_X = pca.transform(scaled_X)
-    print('Scaled pca feature len:', scaled_pca_X.shape)
-    print('Scaled pca mean:', np.mean(scaled_pca_X))
-    data_manipulation.visualize(scaled_pca_X[0])
+    #print('Scaled pca feature len:', scaled_pca_X.shape)
+    #print('Scaled pca mean:', np.mean(scaled_pca_X))
+    #data_manipulation.visualize(scaled_pca_X[0])
 
     # Split up data into randomized training and test sets
     rand_state = np.random.randint(0, 100)
@@ -191,8 +230,6 @@ if __name__ == '__main__':
 
     # TODO: Use a Grid search (?) to tune params to the max.
     # Using rbf SVC kernel
-    svc = svm.SVC(kernel='rbf')
-
     # Check the training time for the SVC
     t = time.time()
 
@@ -205,38 +242,22 @@ if __name__ == '__main__':
     # Check the accuracy of the SVC
     print('Test Accuracy of SVC = ', round(svc.score(X_test, y_test), 4))
 
-    # See results on test images
-    test_images = sorted(glob('examples/frame*.jpg'))
+    # See results on test images (for debugging)
+    # test_images = sorted(glob('examples/frame*.jpg'))
 
-    # Uncomment the following line if you extracted training
-    # data from .png images (scaled 0 to 1 by mpimg) and the
-    # image you are searching is a .jpg (scaled 0 to 255)
-    # image = image.astype(np.float32)/255
-    xy_windows = [(64, 64), (96, 96), (128, 128)]
-    y_regions = [[400, 520], [400, 550], [470, 600]]
-    colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
 
-    for i in range(len(test_images)):
-        image = mpimg.imread(test_images[i])
-        print('loaded image ', test_images[i])
-        draw_image = np.copy(image)
-        # hog_image = data_manipulation.get_hog_features(draw_image, orient, pix_per_cell, cell_per_block,
-        #                                                vis=False, feature_vec=True)
-        start_time = time.time()
-        for j in range(len(xy_windows)):
-            windows = data_manipulation.slide_window(image, x_start_stop=[None, None], y_start_stop=y_regions[j],
-                                                     xy_window=xy_windows[j], xy_overlap=(0.5, 0.5))
+    out_dir='./videos/'
+    output = out_dir+'generated_project_video.mp4'
 
-            hot_windows = search_windows(image, windows, svc, X_scaler, pca, color_space=color_space,
-                                         spatial_size=spatial_size, hist_bins=hist_bins,
-                                         orient=orient, pix_per_cell=pix_per_cell,
-                                         cell_per_block=cell_per_block,
-                                         hog_channel=hog_channel, spatial_feat=spatial_feat,
-                                         hist_feat=hist_feat, hog_feat=hog_feat)
-            print(len(hot_windows), 'windows found!')
-            draw_image = data_manipulation.draw_boxes(draw_image, hot_windows, color=colors[j], thick=j + 2)
-            heatmapHistory.add(hot_windows)
-            heatmapHistory.visualize_heatmap()
-            plt.imshow(draw_image)
-        print('Time to get all window candidates:', time.time() - start_time)
-        plt.show()
+    clip = VideoFileClip("../CarND-P4-Advanced-Lane-Finding/project_video.mp4") #.subclip(35,43)
+    out_clip = clip.fl_image(process_frame)
+    # Add frame back to video and save it
+    out_clip.write_videofile(output, audio=False)
+
+    # Final output (terminal)
+    # Component analysis done.
+    # Using: 9 orientations 16 pixels per cell and 2 cells per block
+    # Feature vector length: 300
+    # [2228 2703]
+    # 47.48 Seconds to train SVC...
+    # Test Accuracy of SVC =  0.9915
